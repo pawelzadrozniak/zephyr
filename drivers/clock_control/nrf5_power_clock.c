@@ -243,9 +243,9 @@ lf_already_started:
 #if defined(CONFIG_USB) && defined(CONFIG_SOC_NRF52840)
 static inline void power_event_cb(nrf_power_event_t event)
 {
-	extern void nrf5_usbd_power_event_callback(nrf_power_event_t event);
+	extern void nrfx_usbd_power_event_callback(nrf_power_event_t event);
 
-	nrf5_usbd_power_event_callback(event);
+	nrfx_usbd_power_event_callback(event);
 }
 #endif
 

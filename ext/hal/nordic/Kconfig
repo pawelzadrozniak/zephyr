@@ -18,3 +18,12 @@ config NRFX_SPIM
 
 config NRFX_SPIS
 	bool
+
+config NRFX_ATOMIC
+	bool
+
+config NRFX_SYSTICK
+	bool
+
+config NRFX_USBD
+	bool
