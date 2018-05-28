@@ -2161,7 +2161,7 @@
 
 
 #ifndef NRFX_SYSTICK_ENABLED
-#define NRFX_SYSTICK_ENABLED 0
+#define NRFX_SYSTICK_ENABLED 1
 #endif
 
 // <e> NRFX_TIMER_ENABLED - nrfx_timer - TIMER periperal driver

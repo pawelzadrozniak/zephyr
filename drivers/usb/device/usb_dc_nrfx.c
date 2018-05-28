@@ -674,9 +674,7 @@ static void usbd_work_handler(struct k_work *item)
 		    case EP_EVT_WRITE_COMPLETE:
                 SYS_LOG_DBGX("EP_EVT_WRITE_COMPLETE @ %d",ep_ctx->cfg.addr);
                 if (ep_ctx->cfg.type == USB_DC_EP_CONTROL) {
-                    if (ep_ctx->buf.len < ep_ctx->cfg.max_sz) {
-                        nrf_drv_usbd_setup_clear();
-                    }
+                    nrf_drv_usbd_setup_clear();
                 }
                 ep_ctx->cfg.cb(ep_ctx->cfg.addr, USB_DC_EP_DATA_IN);
                 break;
