@@ -1,12 +1,8 @@
 /*$$$LICENCE_NORDIC_STANDARD<2016>$$$*/
-#ifndef NRF_ATOMIC_INTERNAL_H__
-#define NRF_ATOMIC_INTERNAL_H__
+#ifndef NRFX_ATOMIC_INTERNAL_H__
+#define NRFX_ATOMIC_INTERNAL_H__
 
-//TODO: add define NRFX_UNUSED
-//#include "nrfx_common.h"
-#define UNUSED_VARIABLE(V) (void)(V)
-#define UNUSED_PARAMETER(V) (void)(V)
-
+#include <nrfx.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -16,8 +12,8 @@ extern "C" {
 
 /**
  *
- * @defgroup nrf_atomic_internal Atomic operations internals
- * @ingroup nrf_atomic
+ * @defgroup nrfx_atomic_internal Atomic operations internals
+ * @ingroup nrfx_atomic
  * @{
  *
  */
@@ -28,7 +24,7 @@ extern "C" {
 #endif
 
 #if defined ( __CC_ARM )
-static __asm uint32_t nrf_atomic_internal_mov(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_mov(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -52,7 +48,7 @@ loop_mov
 }
 
 
-static __asm uint32_t nrf_atomic_internal_orr(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_orr(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -71,7 +67,7 @@ loop_orr
     bx    lr
 }
 
-static __asm uint32_t nrf_atomic_internal_and(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_and(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -90,7 +86,7 @@ loop_and
     bx    lr
 }
 
-static __asm uint32_t nrf_atomic_internal_eor(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_eor(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -109,7 +105,7 @@ loop_eor
     bx    lr
 }
 
-static __asm uint32_t nrf_atomic_internal_add(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_add(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -128,7 +124,7 @@ loop_add
     bx    lr
 }
 
-static __asm uint32_t nrf_atomic_internal_sub(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_sub(nrfx_atomic_u32_t * p_ptr,
                                               uint32_t value,
                                               uint32_t * p_new)
 {
@@ -147,7 +143,7 @@ loop_sub
     bx    lr
 }
 
-static __asm bool nrf_atomic_internal_cmp_exch(nrf_atomic_u32_t * p_data,
+static __asm bool nrfx_atomic_internal_cmp_exch(nrfx_atomic_u32_t * p_data,
                                                uint32_t *         p_expected,
                                                uint32_t           value)
 {
@@ -189,7 +185,7 @@ loop_cmp_exch
 #undef ACT_VAL
 }
 
-static __asm uint32_t nrf_atomic_internal_sub_hs(nrf_atomic_u32_t * p_ptr,
+static __asm uint32_t nrfx_atomic_internal_sub_hs(nrfx_atomic_u32_t * p_ptr,
                                                  uint32_t value,
                                                  uint32_t * p_new)
 {
@@ -212,8 +208,8 @@ loop_sub_ge
 }
 
 
-#define NRF_ATOMIC_OP(asm_op, old_val, new_val, ptr, value)          \
-        old_val = nrf_atomic_internal_##asm_op(ptr, value, &new_val)
+#define NRFX_ATOMIC_OP(asm_op, old_val, new_val, ptr, value)          \
+        old_val = nrfx_atomic_internal_##asm_op(ptr, value, &new_val)
 
 #elif defined ( __ICCARM__ ) || defined ( __GNUC__ )
 
@@ -224,12 +220,12 @@ loop_sub_ge
  * @param[out] new_val atomic object output (uint32_t), value after operation
  * @param[in] value atomic operation operand
  * */
-#define NRF_ATOMIC_OP(asm_op, old_val, new_val, ptr, value)                 \
+#define NRFX_ATOMIC_OP(asm_op, old_val, new_val, ptr, value)                 \
 {                                                                           \
     uint32_t str_res;                                                       \
             __ASM volatile(                                                 \
     "1:     ldrex   %["#old_val"], [%["#ptr"]]\n"                           \
-    NRF_ATOMIC_OP_##asm_op(new_val, old_val, value)                         \
+    NRFX_ATOMIC_OP_##asm_op(new_val, old_val, value)                         \
     "       strex   %[str_res], %["#new_val"], [%["#ptr"]]\n"               \
     "       teq     %[str_res], #0\n"                                       \
     "       bne.n     1b"                                                   \
@@ -241,22 +237,21 @@ loop_sub_ge
         [ptr]"r" (ptr),                                                     \
         [value]"r" (value)                                                  \
             : "cc");                                                        \
-    UNUSED_PARAMETER(str_res);                                              \
 }
 
-#define NRF_ATOMIC_OP_mov(new_val, old_val, value) "mov %["#new_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_orr(new_val, old_val, value) "orr %["#new_val"], %["#old_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_and(new_val, old_val, value) "and %["#new_val"], %["#old_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_eor(new_val, old_val, value) "eor %["#new_val"], %["#old_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_add(new_val, old_val, value) "add %["#new_val"], %["#old_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_sub(new_val, old_val, value) "sub %["#new_val"], %["#old_val"], %["#value"]\n"
-#define NRF_ATOMIC_OP_sub_hs(new_val, old_val, value)                                              \
+#define NRFX_ATOMIC_OP_mov(new_val, old_val, value) "mov %["#new_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_orr(new_val, old_val, value) "orr %["#new_val"], %["#old_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_and(new_val, old_val, value) "and %["#new_val"], %["#old_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_eor(new_val, old_val, value) "eor %["#new_val"], %["#old_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_add(new_val, old_val, value) "add %["#new_val"], %["#old_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_sub(new_val, old_val, value) "sub %["#new_val"], %["#old_val"], %["#value"]\n"
+#define NRFX_ATOMIC_OP_sub_hs(new_val, old_val, value)                                              \
     "cmp %["#old_val"], %["#value"]\n "                                                            \
     "ite hs\n"                                                                                     \
     "subhs %["#new_val"], %["#old_val"], %["#value"]\n"                                            \
     "movlo %["#new_val"], %["#old_val"]\n"
 
-static inline bool nrf_atomic_internal_cmp_exch(nrf_atomic_u32_t * p_data,
+static inline bool nrfx_atomic_internal_cmp_exch(nrfx_atomic_u32_t * p_data,
                                                 uint32_t *         p_expected,
                                                 uint32_t           value)
 {
@@ -264,9 +259,6 @@ static inline bool nrf_atomic_internal_cmp_exch(nrf_atomic_u32_t * p_data,
     uint32_t str_res = 0;
     uint32_t act_val = 0;
     uint32_t exp_val = 0;
-    UNUSED_VARIABLE(str_res);
-    UNUSED_VARIABLE(act_val);
-    UNUSED_VARIABLE(exp_val);
     __ASM volatile(
     "1:     ldrex   %[act_val], [%[ptr]]\n"
     "       ldr     %[exp_val], [%[expc]]\n"
@@ -304,6 +296,6 @@ static inline bool nrf_atomic_internal_cmp_exch(nrf_atomic_u32_t * p_data,
 }
 #endif
 
-#endif /* NRF_ATOMIC_INTERNAL_H__ */
+#endif /* NRFX_ATOMIC_INTERNAL_H__ */
 
 /** @} */

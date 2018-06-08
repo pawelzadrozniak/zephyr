@@ -259,11 +259,11 @@ static inline struct nrf5_usbd_ctx *get_usbd_ctx(void)
     return &usbd_ctx;
 }
 
-static inline nrf_drv_usbd_ep_t ep_addr_to_nrfx(uint8_t ep)
+static inline nrfx_usbd_ep_t ep_addr_to_nrfx(uint8_t ep)
 {
-    return (nrf_drv_usbd_ep_t)ep;
+    return (nrfx_usbd_ep_t)ep;
 }
-static inline uint8_t nrfx_addr_to_ep(nrf_drv_usbd_ep_t ep)
+static inline uint8_t nrfx_addr_to_ep(nrfx_usbd_ep_t ep)
 {
     return (uint8_t)ep;
 }
@@ -521,7 +521,7 @@ static void usbd_enable_endpoints(struct nrf5_usbd_ctx *ctx)
 		__ASSERT_NO_MSG(ep_ctx);
 
 		if (ep_ctx->cfg.en) {
-		    nrf_drv_usbd_ep_enable(ep_addr_to_nrfx(ep_ctx->cfg.addr));
+		    nrfx_usbd_ep_enable(ep_addr_to_nrfx(ep_ctx->cfg.addr));
 		}
 	}
 
@@ -530,7 +530,7 @@ static void usbd_enable_endpoints(struct nrf5_usbd_ctx *ctx)
 		__ASSERT_NO_MSG(ep_ctx);
 
 		if (ep_ctx->cfg.en) {
-		    nrf_drv_usbd_ep_enable(ep_addr_to_nrfx(ep_ctx->cfg.addr));
+		    nrfx_usbd_ep_enable(ep_addr_to_nrfx(ep_ctx->cfg.addr));
 		}
 	}
 }
@@ -540,7 +540,7 @@ static void usbd_handle_state_change(struct nrf5_usbd_ctx *ctx)
 	switch (ctx->state) {
 	case USBD_ATTACHED:
 		SYS_LOG_DBG("USB detected");
-		nrf_drv_usbd_enable();
+		nrfx_usbd_enable();
 		break;
 
 	case USBD_POWERED:
@@ -548,14 +548,14 @@ static void usbd_handle_state_change(struct nrf5_usbd_ctx *ctx)
 		ctx->status_code = USB_DC_CONNECTED;
 		ctx->flags |= BIT(NRF5_USB_STATUS_CHANGE);
 		usbd_enable_endpoints(ctx);
-		nrf_drv_usbd_start(true);
+		nrfx_usbd_start(true);
 		ctx->ready = true;
 		break;
 
 	case USBD_DETACHED:
 		SYS_LOG_DBG("USB Removed");
 		ctx->ready = false;
-		nrf_drv_usbd_stop();
+		nrfx_usbd_stop();
 		ctx->status_code = USB_DC_DISCONNECTED;
 		ctx->flags |= BIT(NRF5_USB_STATUS_CHANGE);
 		break;
@@ -609,9 +609,9 @@ static void usbd_work_handler(struct k_work *item)
 
 		        struct nrf5_usbd_ep_ctx *ep_ctx = ev->ep;
 		        struct usb_setup_packet * usbd_setup;
-                nrf_drv_usbd_setup_t drv_setup;
+                nrfx_usbd_setup_t drv_setup;
 
-                nrf_drv_usbd_setup_get(&drv_setup);
+                nrfx_usbd_setup_get(&drv_setup);
 
                 SYS_LOG_DBGX("SETUP: r:%d rt:%d v:%d i:%d l:%d", \
                          (int32_t)drv_setup.bmRequest, \
@@ -636,7 +636,7 @@ static void usbd_work_handler(struct k_work *item)
                 if (((drv_setup.bmRequestType & USB_BMREQUESTTYPE_MASK) == USB_BMREQUESTTYPE_HOSTTODEVICE_MASK)
                         && (drv_setup.wLength)) {
                     SYS_LOG_DBGX("setup_data_clear");
-                    nrf_drv_usbd_setup_data_clear();
+                    nrfx_usbd_setup_data_clear();
                 }
                 break;
 		    }
@@ -657,8 +657,8 @@ static void usbd_work_handler(struct k_work *item)
 
                 SYS_LOG_DBGX("[%08X] ++sem /o req",(uint32_t) k_current_get());
                 k_sem_take(&ctx->dma_in_use, K_FOREVER);
-                NRF_DRV_USBD_TRANSFER_OUT(transfer, ep_ctx->buf.data, ep_ctx->cfg.max_sz);
-                nrfx_err_t err = nrf_drv_usbd_ep_transfer(ep_addr_to_nrfx(ep_ctx->cfg.addr), &transfer);
+                NRFX_USBD_TRANSFER_OUT(transfer, ep_ctx->buf.data, ep_ctx->cfg.max_sz);
+                nrfx_err_t err = nrfx_usbd_ep_transfer(ep_addr_to_nrfx(ep_ctx->cfg.addr), &transfer);
                 if (err != NRFX_SUCCESS) {
                     SYS_LOG_ERR("nRF USBD transfer error (OUT): %d.",err);
                     SYS_LOG_DBGX("--sem /o err");
@@ -674,9 +674,7 @@ static void usbd_work_handler(struct k_work *item)
 		    case EP_EVT_WRITE_COMPLETE:
                 SYS_LOG_DBGX("EP_EVT_WRITE_COMPLETE @ %d",ep_ctx->cfg.addr);
                 if (ep_ctx->cfg.type == USB_DC_EP_CONTROL) {
-                    if (ep_ctx->buf.len < ep_ctx->cfg.max_sz) {
-                        nrf_drv_usbd_setup_clear();
-                    }
+                    nrfx_usbd_setup_clear();
                 }
                 ep_ctx->cfg.cb(ep_ctx->cfg.addr, USB_DC_EP_DATA_IN);
                 break;
@@ -833,7 +831,7 @@ static int usbd_power_int_enable(bool enable)
 
 
 
-static void usbd_event_transfer_ctrl(nrf_drv_usbd_evt_t const * const p_event)
+static void usbd_event_transfer_ctrl(nrfx_usbd_evt_t const * const p_event)
 {
     struct nrf5_usbd_ep_ctx *ep_ctx = endpoint_ctx(p_event->data.eptransfer.ep);
     struct nrf5_usbd_ctx *ctx = get_usbd_ctx();
@@ -874,7 +872,7 @@ static void usbd_event_transfer_ctrl(nrf_drv_usbd_evt_t const * const p_event)
             ev->evt = EP_EVT_RECV_COMPLETE;
 
             nrfx_err_t err_code;
-            err_code = nrf_drv_usbd_ep_status_get(p_event->data.eptransfer.ep, &ep_ctx->buf.len);
+            err_code = nrfx_usbd_ep_status_get(p_event->data.eptransfer.ep, &ep_ctx->buf.len);
 
             if ((err_code != NRFX_SUCCESS) && (err_code != (nrfx_err_t)NRF_USBD_EP_OK)) {
                 SYS_LOG_ERR("_ep_status_get failed! Code: %d.",err_code);
@@ -892,7 +890,7 @@ static void usbd_event_transfer_ctrl(nrf_drv_usbd_evt_t const * const p_event)
     }
 }
 
-static void usbd_event_transfer_data(nrf_drv_usbd_evt_t const * const p_event)
+static void usbd_event_transfer_data(nrfx_usbd_evt_t const * const p_event)
 {
     struct nrf5_usbd_ctx *ctx = get_usbd_ctx();
     struct nrf5_usbd_ep_ctx *ep_ctx = endpoint_ctx(p_event->data.eptransfer.ep);
@@ -943,30 +941,30 @@ static void usbd_event_transfer_data(nrf_drv_usbd_evt_t const * const p_event)
 /**
  * @brief nRFx USBD driver event handler function.
  */
-static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
+static void usbd_event_handler(nrfx_usbd_evt_t const * const p_event)
 {
     struct nrf5_usbd_ep_ctx *ep_ctx;
     struct usbd_ep_event *ev;
 
     switch (p_event->type)
     {
-    case NRF_DRV_USBD_EVT_SUSPEND:
+    case NRFX_USBD_EVT_SUSPEND:
         SYS_LOG_DBG("SUSPEND state detected.");
         break;
-    case NRF_DRV_USBD_EVT_RESUME:
+    case NRFX_USBD_EVT_RESUME:
         SYS_LOG_DBG("RESUMING from suspend.");
         break;
-    case NRF_DRV_USBD_EVT_WUREQ:
+    case NRFX_USBD_EVT_WUREQ:
         SYS_LOG_DBG("RemoteWU initiated.");
         break;
-    case NRF_DRV_USBD_EVT_RESET:
+    case NRFX_USBD_EVT_RESET:
         SYS_LOG_DBG("USBD Reset.");
         usbd_status_code_update(USB_DC_RESET);
         break;
-    case NRF_DRV_USBD_EVT_SOF:
+    case NRFX_USBD_EVT_SOF:
         break;
 
-    case NRF_DRV_USBD_EVT_EPTRANSFER:
+    case NRFX_USBD_EVT_EPTRANSFER:
 
         SYS_LOG_DBGX("[%08X] ept",(uint32_t)k_current_get());
 
@@ -987,9 +985,9 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
             }
         break;
 
-    case NRF_DRV_USBD_EVT_SETUP: {
-            nrf_drv_usbd_setup_t drv_setup;
-            nrf_drv_usbd_setup_get(&drv_setup);
+    case NRFX_USBD_EVT_SETUP: {
+            nrfx_usbd_setup_t drv_setup;
+            nrfx_usbd_setup_get(&drv_setup);
 
             if (drv_setup.bmRequest != USB_BMREQUEST_SETADDRESS) {
                 // SetAddress is habdled by USBD hardware - no software action required.
@@ -1033,7 +1031,7 @@ int usb_dc_attach(void)
 	}
 
 	nrfx_err_t err;
-    err = nrf_drv_usbd_init(usbd_event_handler);
+    err = nrfx_usbd_init(usbd_event_handler);
 
     if (err != NRFX_SUCCESS) {
         SYS_LOG_DBG("nRF USBD driver init failed. Code: %d.", (uint32_t)err);
@@ -1066,8 +1064,8 @@ int usb_dc_detach(void)
 
 	// Following functions may return error if the peripheral was not initialized before.
     // This can be ignored.
-    (void)nrf_drv_usbd_disable();
-    (void)nrf_drv_usbd_uninit();
+    (void)nrfx_usbd_disable();
+    (void)nrfx_usbd_uninit();
 
     ret = hf_clock_enable(false, false);
     if (ret) {
@@ -1174,11 +1172,11 @@ int usb_dc_ep_set_stall(const u8_t ep)
 
 	switch (ep_ctx->cfg.type) {
 	case USB_DC_EP_CONTROL:
-		nrf_drv_usbd_setup_stall();
+		nrfx_usbd_setup_stall();
 		break;
 	case USB_DC_EP_BULK:
 	case USB_DC_EP_INTERRUPT:
-		nrf_drv_usbd_ep_stall(ep_addr_to_nrfx(ep));
+		nrfx_usbd_ep_stall(ep_addr_to_nrfx(ep));
 		break;
 	case USB_DC_EP_ISOCHRONOUS:
 		SYS_LOG_ERR("STALL unsupported on ISO endpoint.s");
@@ -1207,7 +1205,7 @@ int usb_dc_ep_clear_stall(const u8_t ep)
 		return -EINVAL;
 	}
 
-	nrf_drv_usbd_ep_stall_clear(ep_addr_to_nrfx(ep));
+	nrfx_usbd_ep_stall_clear(ep_addr_to_nrfx(ep));
 	SYS_LOG_DBG("Unstall on EP %d", ep);
 
 	return 0;
@@ -1231,7 +1229,7 @@ int usb_dc_ep_is_stalled(const u8_t ep, u8_t *const stalled)
 		return -EINVAL;
 	}
 
-	*stalled = (u8_t) nrf_drv_usbd_ep_stall_check(ep_addr_to_nrfx(ep));
+	*stalled = (u8_t) nrfx_usbd_ep_stall_check(ep_addr_to_nrfx(ep));
 
 	return 0;
 }
@@ -1259,7 +1257,7 @@ int usb_dc_ep_enable(const u8_t ep)
 
 	/* Defer the endpoint enable if USBD is not ready yet. */
 	if (dev_ready()) {
-	    nrf_drv_usbd_ep_enable(ep_addr_to_nrfx(ep));
+	    nrfx_usbd_ep_enable(ep_addr_to_nrfx(ep));
 	}
 
 	return 0;
@@ -1284,7 +1282,7 @@ int usb_dc_ep_disable(const u8_t ep)
 
     SYS_LOG_DBG("EP disable: %d.", ep);
 
-	nrf_drv_usbd_ep_disable(ep_addr_to_nrfx(ep));
+	nrfx_usbd_ep_disable(ep_addr_to_nrfx(ep));
 	ep_ctx->cfg.en = false;
 
 	return 0;
@@ -1306,7 +1304,7 @@ int usb_dc_ep_flush(const u8_t ep)
 	ep_ctx->buf.len = 0;
 	ep_ctx->buf.curr = ep_ctx->buf.data;
 
-	nrf_drv_usbd_transfer_out_drop(ep_addr_to_nrfx(ep));
+	nrfx_usbd_transfer_out_drop(ep_addr_to_nrfx(ep));
 
 	return 0;
 }
@@ -1354,15 +1352,15 @@ int usb_dc_ep_write(const u8_t ep, const u8_t *const data,
 	}
 
 	if ((ep_ctx->cfg.type == USB_DC_EP_CONTROL)
-	            && (nrf_drv_usbd_last_setup_dir_get() != ep)) {
+	            && (nrfx_usbd_last_setup_dir_get() != ep)) {
         SYS_LOG_DBGX(" --sem (**status)");
         k_sem_give(&ctx->dma_in_use);
-        nrf_drv_usbd_setup_clear();
+        nrfx_usbd_setup_clear();
         return 0;
     }
-	NRF_DRV_USBD_TRANSFER_IN(transfer, ep_ctx->buf.data, ep_ctx->buf.len);
+	NRFX_USBD_TRANSFER_IN(transfer, ep_ctx->buf.data, ep_ctx->buf.len);
 	nrfx_err_t err = \
-	        nrf_drv_usbd_ep_transfer(ep_addr_to_nrfx(ep), &transfer);
+	        nrfx_usbd_ep_transfer(ep_addr_to_nrfx(ep), &transfer);
 
 	if (err != NRFX_SUCCESS) {
 	    SYS_LOG_DBGX(" --sem");

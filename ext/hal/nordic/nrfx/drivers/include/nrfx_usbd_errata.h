@@ -38,27 +38,27 @@
  * 
  */
 
-#ifndef NRF_DRV_USBD_ERRATA_H__
-#define NRF_DRV_USBD_ERRATA_H__
+#ifndef NRFX_USBD_ERRATA_H__
+#define NRFX_USBD_ERRATA_H__
 
 #include <stdbool.h>
 /**
- * @defgroup nrf_drv_usbd_errata Functions to check if selected PAN is present in current chip
+ * @defgroup nrfx_usbd_errata Functions to check if selected PAN is present in current chip
  * @{
- * @ingroup nrf_drv_usbd
+ * @ingroup nrfx_usbd
  *
  * Functions here are checking the presence of an error in current chip.
  * The checking is done at runtime based on the microcontroller version.
  * This file is subject to removal when nRF51840 prototype support is removed.
  */
 
-#ifndef NRF_DRV_USBD_ERRATA_ENABLE
+#ifndef NRFX_USBD_ERRATA_ENABLE
 /**
  * @brief The constant that informs if errata should be enabled at all
  *
  * If this constant is set to 0, all the Errata bug fixes will be automatically disabled.
  */
-#define NRF_DRV_USBD_ERRATA_ENABLE 1
+#define NRFX_USBD_ERRATA_ENABLE 1
 #endif
 
 /**
@@ -66,7 +66,7 @@
  * @retval true  It is NRF52480 chip
  * @retval false It is other chip
  */
-static inline bool nrf_drv_usbd_errata_type_52840(void)
+static inline bool nrfx_usbd_errata_type_52840(void)
 {
     return ((((*(uint32_t *)0xF0000FE0) & 0xFF) == 0x08) &&
         (((*(uint32_t *)0xF0000FE4) & 0x0F) == 0x0));
@@ -78,9 +78,9 @@ static inline bool nrf_drv_usbd_errata_type_52840(void)
  * @retval true  It is NRF52480 chip and it is first sample version
  * @retval false It is other chip
  */
-static inline bool nrf_drv_usbd_errata_type_52840_proto1(void)
+static inline bool nrfx_usbd_errata_type_52840_proto1(void)
 {
-    return ( nrf_drv_usbd_errata_type_52840() &&
+    return ( nrfx_usbd_errata_type_52840() &&
                ( ((*(uint32_t *)0xF0000FE8) & 0xF0) == 0x00 ) &&
                ( ((*(uint32_t *)0xF0000FEC) & 0xF0) == 0x00 ) );
 }
@@ -91,9 +91,9 @@ static inline bool nrf_drv_usbd_errata_type_52840_proto1(void)
  * @retval true  It is NRF52480 chip and it is first final product
  * @retval false It is other chip
  */
-static inline bool nrf_drv_usbd_errata_type_52840_fp1(void)
+static inline bool nrfx_usbd_errata_type_52840_fp1(void)
 {
-    return ( nrf_drv_usbd_errata_type_52840() &&
+    return ( nrfx_usbd_errata_type_52840() &&
                ( ((*(uint32_t *)0xF0000FE8) & 0xF0) == 0x10 ) &&
                ( ((*(uint32_t *)0xF0000FEC) & 0xF0) == 0x00 ) );
 }
@@ -106,9 +106,9 @@ static inline bool nrf_drv_usbd_errata_type_52840_fp1(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_104(void)
+static inline bool nrfx_usbd_errata_104(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && nrf_drv_usbd_errata_type_52840_proto1();
+    return NRFX_USBD_ERRATA_ENABLE && nrfx_usbd_errata_type_52840_proto1();
 }
 
 /**
@@ -119,9 +119,9 @@ static inline bool nrf_drv_usbd_errata_104(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_154(void)
+static inline bool nrfx_usbd_errata_154(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && nrf_drv_usbd_errata_type_52840_proto1();
+    return NRFX_USBD_ERRATA_ENABLE && nrfx_usbd_errata_type_52840_proto1();
 }
 
 /**
@@ -132,9 +132,9 @@ static inline bool nrf_drv_usbd_errata_154(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_166(void)
+static inline bool nrfx_usbd_errata_166(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && true;
+    return NRFX_USBD_ERRATA_ENABLE && true;
 }
 
 /**
@@ -145,9 +145,9 @@ static inline bool nrf_drv_usbd_errata_166(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_171(void)
+static inline bool nrfx_usbd_errata_171(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && true;
+    return NRFX_USBD_ERRATA_ENABLE && true;
 }
 
 /**
@@ -158,9 +158,9 @@ static inline bool nrf_drv_usbd_errata_171(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_187(void)
+static inline bool nrfx_usbd_errata_187(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && nrf_drv_usbd_errata_type_52840_fp1();
+    return NRFX_USBD_ERRATA_ENABLE && nrfx_usbd_errata_type_52840_fp1();
 }
 
 /**
@@ -171,9 +171,9 @@ static inline bool nrf_drv_usbd_errata_187(void)
  * @retval true  Errata should be implemented
  * @retval false Errata should not be implemented
  */
-static inline bool nrf_drv_usbd_errata_sizeepout_rw(void)
+static inline bool nrfx_usbd_errata_sizeepout_rw(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && nrf_drv_usbd_errata_type_52840_proto1();
+    return NRFX_USBD_ERRATA_ENABLE && nrfx_usbd_errata_type_52840_proto1();
 }
 
 /**
@@ -186,8 +186,8 @@ static inline bool nrf_drv_usbd_errata_sizeepout_rw(void)
  */
 static inline bool nrf_drv_usb_errata_199(void)
 {
-    return NRF_DRV_USBD_ERRATA_ENABLE && true;
+    return NRFX_USBD_ERRATA_ENABLE && true;
 }
 
 /** @} */
-#endif /* NRF_DRV_USBD_ERRATA_H__ */
+#endif /* NRFX_USBD_ERRATA_H__ */

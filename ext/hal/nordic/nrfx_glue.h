@@ -146,6 +146,135 @@ extern "C" {
 
 //------------------------------------------------------------------------------
 
+#include <atomic.h>
+
+/**
+ * @brief Atomic 32 bit unsigned type
+ * */
+#define nrfx_atomic_t               atomic_val_t
+
+/**
+ * @brief Stores value to an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value to store
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_STORE(P_DATA, VALUE) atomic_set(P_DATA, VALUE)
+
+/**
+ * @brief Stores value to an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value to store
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_STORE(P_DATA, VALUE)       (atomic_set(P_DATA, VALUE), (VALUE))
+
+/**
+ * @brief Logical OR operation on an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value of second operand OR operation
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_OR(P_DATA, VALUE)   atomic_or(P_DATA, VALUE)
+
+/**
+ * @brief Logical OR operation on an atomic object
+ *
+ * @param[inout] P_DATA    Atomic memory pointer
+ * @param[in]    VALUE     Value of second operand OR operation
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_OR(P_DATA, VALUE)         (atomic_or(P_DATA, VALUE) | VALUE)
+
+/**
+ * @brief Logical AND operation on an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value of second operand AND operation
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_AND(P_DATA, VALUE)   atomic_and(P_DATA, VALUE)
+
+/**
+ * @brief Logical AND operation on an atomic object
+ *
+ * @param[inout] P_DATA    Atomic memory pointer
+ * @param[in]    VALUE     Value of second operand AND operation
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_AND(P_DATA, VALUE)         (atomic_and(P_DATA, VALUE) & VALUE)
+
+/**
+ * @brief Logical XOR operation on an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value of second operand XOR operation
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_XOR(P_DATA, VALUE)   atomic_xor(P_DATA, VALUE)
+
+/**
+ * @brief Logical XOR operation on an atomic object
+ *
+ * @param[inout] P_DATA    Atomic memory pointer
+ * @param[in]    VALUE     Value of second operand XOR operation
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_XOR(P_DATA, VALUE)         (atomic_xor(P_DATA, VALUE) ^ VALUE)
+
+/**
+ * @brief Logical ADD operation on an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value of second operand ADD operation
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_ADD(P_DATA, VALUE)   atomic_add(P_DATA, VALUE)
+
+/**
+ * @brief Logical ADD operation on an atomic object
+ *
+ * @param[inout] P_DATA    Atomic memory pointer
+ * @param[in]    VALUE     Value of second operand ADD operation
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_ADD(P_DATA, VALUE)         (atomic_add(P_DATA, VALUE) + VALUE)
+
+/**
+ * @brief Logical SUB operation on an atomic object
+ *
+ * @param[in] P_DATA    Atomic memory pointer
+ * @param[in] VALUE     Value of second operand SUB operation
+ *
+ * @return Old value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_FETCH_SUB(P_DATA, VALUE)   atomic_sub(P_DATA, VALUE)
+
+/**
+ * @brief Logical SUB operation on an atomic object
+ *
+ * @param[inout] P_DATA    Atomic memory pointer
+ * @param[in]    VALUE     Value of second operand SUB operation
+ *
+ * @return New value stored into atomic object
+ * */
+#define NRFX_ATOMIC_U32_SUB(P_DATA, VALUE)         (atomic_sub(P_DATA, VALUE) - VALUE)
+
+//------------------------------------------------------------------------------
+
 /**
  * @brief When set to a non-zero value, this macro specifies that the
  *        @ref nrfx_error_codes and the @ref nrfx_err_t type itself are defined

@@ -1,33 +1,4 @@
-/**
- * Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- * 
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+/*$$$LICENCE_NORDIC_STANDARD<2017>$$$*/
 
 #ifndef NRFX_COMMON_H__
 #define NRFX_COMMON_H__
@@ -116,6 +87,18 @@ extern "C" {
  * @return Rounded (integer) result of dividing @c a by @c b.
  */
 #define NRFX_ROUNDED_DIV(a, b)  (((a) + ((b) / 2)) / (b))
+
+/**@brief Perform integer division, making sure the result is rounded up.
+ *
+ * @details One typical use for this is to compute the number of objects with
+ *          size @c b is needed to hold @c a number of bytes.
+ *
+ * @param a   Numerator.
+ * @param b   Denominator.
+ *
+ * @return Integer result of dividing @c a by @c b, rounded up.
+ */
+#define NRFX_CEIL_DIV(a, b)  ((((a) - 1) / (b)) + 1)
 
 /**@brief Macro for checking if given lengths of EasyDMA transfers do not exceed
  *        the limit of the specified peripheral.
