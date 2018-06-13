@@ -117,6 +117,18 @@ extern "C" {
  */
 #define NRFX_ROUNDED_DIV(a, b)  (((a) + ((b) / 2)) / (b))
 
+/**@brief Perform integer division, making sure the result is rounded up.
+ *
+ * @details One typical use for this is to compute the number of objects with
+ *          size @c b is needed to hold @c a number of bytes.
+ *
+ * @param a   Numerator.
+ * @param b   Denominator.
+ *
+ * @return Integer result of dividing @c a by @c b, rounded up.
+ */
+#define NRFX_CEIL_DIV(a, b)  ((((a) - 1) / (b)) + 1)
+
 /**@brief Macro for checking if given lengths of EasyDMA transfers do not exceed
  *        the limit of the specified peripheral.
  *
