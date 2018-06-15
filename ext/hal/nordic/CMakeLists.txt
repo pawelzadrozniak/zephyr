@@ -27,4 +27,8 @@ if(CONFIG_HAS_NRFX)
   zephyr_sources_ifdef(CONFIG_NRFX_UART  nrfx/drivers/src/nrfx_uart.c)
   zephyr_sources_ifdef(CONFIG_NRFX_UARTE nrfx/drivers/src/nrfx_uarte.c)
   zephyr_sources_ifdef(CONFIG_NRFX_WDT   nrfx/drivers/src/nrfx_wdt.c)
+  zephyr_sources_ifdef(CONFIG_NRFX_SYSTICK   nrfx/drivers/src/nrfx_systick.c)
+  zephyr_sources_ifdef(CONFIG_NRFX_ATOMIC    nrfx/drivers/src/nrfx_atomic.c)
+  zephyr_sources_ifdef(CONFIG_NRFX_USBD      nrfx/drivers/src/nrfx_usbd.c)
+
 endif()
