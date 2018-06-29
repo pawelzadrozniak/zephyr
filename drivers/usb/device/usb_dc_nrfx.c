@@ -705,7 +705,8 @@ static void usbd_work_handler(struct k_work *item)
 		case EP_EVT_WRITE_COMPLETE:
 			SYS_LOG_DBGX("EP_EVT_WRITE_COMPLETE @ %d",
 				     ep_ctx->cfg.addr);
-			if (ep_ctx->cfg.type == USB_DC_EP_CONTROL) {
+			if (ep_ctx->cfg.type == USB_DC_EP_CONTROL)
+			{
 				nrfx_usbd_setup_clear();
 			}
 			ep_ctx->cfg.cb(ep_ctx->cfg.addr, USB_DC_EP_DATA_IN);
@@ -1432,8 +1433,10 @@ int usb_dc_ep_write(const u8_t ep, const u8_t *const data,
 
 	SYS_LOG_DBGX("[%08X] ++sem wr", (u32_t)k_current_get());
 
-	/* TODO: long transfers */
-	bytes_to_copy = min(data_len, ep_ctx->cfg.max_sz);
+	/* Data length longer than ep_ctx->cfg.max_sz is allowed.
+	 * NRFX driver performs the fragmentation.
+	 */
+	bytes_to_copy = data_len;
 	memcpy(ep_ctx->buf.data, data, bytes_to_copy);
 	ep_ctx->buf.len = bytes_to_copy;
 
@@ -1441,8 +1444,9 @@ int usb_dc_ep_write(const u8_t ep, const u8_t *const data,
 		*ret_bytes = bytes_to_copy;
 	}
 
+	
 	if ((ep_ctx->cfg.type == USB_DC_EP_CONTROL)
-	    & (nrfx_usbd_last_setup_dir_get() != ep)) {
+		&& (nrfx_usbd_last_setup_dir_get() != ep)) {
 		SYS_LOG_DBGX(" --sem (**status)");
 		k_sem_give(&ctx->dma_in_use);
 		nrfx_usbd_setup_clear();
@@ -1451,6 +1455,10 @@ int usb_dc_ep_write(const u8_t ep, const u8_t *const data,
 	NRFX_USBD_TRANSFER_IN(transfer, ep_ctx->buf.data, ep_ctx->buf.len);
 	nrfx_err_t err = nrfx_usbd_ep_transfer(ep_addr_to_nrfx(ep), &transfer);
 
+	/* Setup stage is handled by hardware.
+	 * Detect the setup stage initiated by the stack
+	 * and perform appropriate action.
+	 */
 	if (err != NRFX_SUCCESS) {
 		SYS_LOG_DBGX(" --sem");
 		k_sem_give(&ctx->dma_in_use);
