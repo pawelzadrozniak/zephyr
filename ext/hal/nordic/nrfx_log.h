@@ -36,6 +36,14 @@
 extern "C" {
 #endif
 
+
+#ifdef NRF_LOG_MODULE_NAME
+    #define _TO_STR(s) #s
+    #define __TO_STR(s) _TO_STR(s)
+    #define SYS_LOG_DOMAIN "nrfx/" __TO_STR(NRF_LOG_MODULE_NAME)
+#endif
+#include <logging/sys_log.h>
+
 /**
  * @defgroup nrfx_log nrfx_log.h
  * @{
@@ -51,7 +59,7 @@ extern "C" {
  * @param format  printf-style format string, optionally followed by arguments
  *                to be formatted and inserted in the resulting string.
  */
-#define NRFX_LOG_ERROR(format, ...)
+#define NRFX_LOG_ERROR SYS_LOG_ERR
 
 /**
  * @brief Macro for logging a message with the severity level WARNING.
@@ -59,7 +67,7 @@ extern "C" {
  * @param format  printf-style format string, optionally followed by arguments
  *                to be formatted and inserted in the resulting string.
  */
-#define NRFX_LOG_WARNING(format, ...)
+#define NRFX_LOG_WARNING SYS_LOG_WRN
 
 /**
  * @brief Macro for logging a message with the severity level INFO.
@@ -67,7 +75,7 @@ extern "C" {
  * @param format  printf-style format string, optionally followed by arguments
  *                to be formatted and inserted in the resulting string.
  */
-#define NRFX_LOG_INFO(format, ...)
+#define NRFX_LOG_INFO SYS_LOG_INF
 
 /**
  * @brief Macro for logging a message with the severity level DEBUG.
@@ -75,7 +83,7 @@ extern "C" {
  * @param format  printf-style format string, optionally followed by arguments
  *                to be formatted and inserted in the resulting string.
  */
-#define NRFX_LOG_DEBUG(format, ...)
+#define NRFX_LOG_DEBUG SYS_LOG_DBG
 
 
 /**
