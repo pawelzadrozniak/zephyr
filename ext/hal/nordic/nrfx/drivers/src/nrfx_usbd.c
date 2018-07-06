@@ -1,18 +1,13 @@
 /*$$$LICENCE_NORDIC_STANDARD<2016>$$$*/
 
 #include <nrfx.h>
-#include <nrfx_glue.h>
-#include <drivers/nrfx_common.h>
 
-#define NRF_LOG_MODULE_NAME USBD
 #if NRFX_CHECK(NRFX_USBD_ENABLED)
 
 #include <nrfx_usbd.h>
+#include "nrfx_usbd_errata.h"
 #include <nrfx_systick.h> /* Marker to delete when not required anymore: >> NRFX_USBD_ERRATA_ENABLE << */
-
-#include <stdbool.h>
 #include <string.h>
-#include <inttypes.h>
 
 #define NRFX_LOG_MODULE USBD
 #include <nrfx_log.h>
@@ -31,8 +26,8 @@
 #define NRFX_USBD_PROTO1_FIX_DEBUG 1
 #endif
 
-#define NRFX_USBD_LOG_PROTO1_FIX_PRINTF(...)                          \
-    do{                                                                  \
+#define NRFX_USBD_LOG_PROTO1_FIX_PRINTF(...)                           \
+    do{                                                                \
         if (NRFX_USBD_PROTO1_FIX_DEBUG){ NRFX_LOG_DEBUG(__VA_ARGS__); }\
     } while (0)
 
@@ -40,27 +35,27 @@
 #define NRFX_USBD_STARTED_EV_ENABLE    0
 #endif
 
-#ifndef NRF_USBD_ISO_DEBUG
+#ifndef NRFX_USBD_ISO_DEBUG
 /* Also generate information about ISOCHRONOUS events and transfers.
  * Turn this off if no ISOCHRONOUS transfers are going to be debugged and this
  * option generates a lot of useless messages. */
-#define NRF_USBD_ISO_DEBUG 1
+#define NRFX_USBD_ISO_DEBUG 1
 #endif
 
-#ifndef NRF_USBD_FAILED_TRANSFERS_DEBUG
+#ifndef NRFX_USBD_FAILED_TRANSFERS_DEBUG
 /* Also generate debug information for failed transfers.
  * It might be useful but may generate a lot of useless debug messages
  * in some library usages (for example when transfer is generated and the
  * result is used to check whatever endpoint was busy. */
-#define NRF_USBD_FAILED_TRANSFERS_DEBUG 1
+#define NRFX_USBD_FAILED_TRANSFERS_DEBUG 1
 #endif
 
-#ifndef NRF_USBD_DMAREQ_PROCESS_DEBUG
+#ifndef NRFX_USBD_DMAREQ_PROCESS_DEBUG
 /* Generate additional messages that mark the status inside
  * @ref usbd_dmareq_process.
  * It is useful to debug library internals but may generate a lot of
  * useless debug messages. */
-#define NRF_USBD_DMAREQ_PROCESS_DEBUG 1
+#define NRFX_USBD_DMAREQ_PROCESS_DEBUG 1
 #endif
 
 
@@ -74,47 +69,47 @@
  */
 
 /**
- * @brief Assert endpoint number validity
+ * @brief Assert endpoint number validity.
  *
  * Internal macro to be used during program creation in debug mode.
  * Generates assertion if endpoint number is not valid.
  *
- * @param ep Endpoint number to validity check
+ * @param ep Endpoint number to validity check.
  */
-#define USBD_ASSERT_EP_VALID(ep) NRFX_ASSERT(                                         \
+#define NRFX_USBD_ASSERT_EP_VALID(ep) NRFX_ASSERT(                               \
     ((NRF_USBD_EPIN_CHECK(ep)  && (NRF_USBD_EP_NR_GET(ep) < NRF_USBD_EPIN_CNT )) \
     ||                                                                           \
     (NRF_USBD_EPOUT_CHECK(ep) && (NRF_USBD_EP_NR_GET(ep) < NRF_USBD_EPOUT_CNT))) \
 );
 
 /**
- * @brief Lowest position of bit for IN endpoint
+ * @brief Lowest position of bit for IN endpoint.
  *
  * The first bit position corresponding to IN endpoint.
  * @sa ep2bit bit2ep
  */
-#define USBD_EPIN_BITPOS_0   0
+#define NRFX_USBD_EPIN_BITPOS_0   0
 
 /**
- * @brief Lowest position of bit for OUT endpoint
+ * @brief Lowest position of bit for OUT endpoint.
  *
  * The first bit position corresponding to OUT endpoint
  * @sa ep2bit bit2ep
  */
-#define USBD_EPOUT_BITPOS_0  16
+#define NRFX_USBD_EPOUT_BITPOS_0  16
 
 /**
- * @brief Input endpoint bits mask
+ * @brief Input endpoint bits mask.
  */
-#define USBD_EPIN_BIT_MASK (0xFFFFU << USBD_EPIN_BITPOS_0)
+#define NRFX_USBD_EPIN_BIT_MASK (0xFFFFU << NRFX_USBD_EPIN_BITPOS_0)
 
 /**
- * @brief Output endpoint bits mask
+ * @brief Output endpoint bits mask.
  */
-#define USBD_EPOUT_BIT_MASK (0xFFFFU << USBD_EPOUT_BITPOS_0)
+#define NRFX_USBD_EPOUT_BIT_MASK (0xFFFFU << NRFX_USBD_EPOUT_BITPOS_0)
 
 /**
- * @brief Auxiliary macro to change EP number into bit position
+ * @brief Auxiliary macro to change EP number into bit position.
  *
  * This macro is used by @ref ep2bit function but also for statically check
  * the bitpos values integrity during compilation.
@@ -122,8 +117,8 @@
  * @param[in] ep Endpoint number.
  * @return Endpoint bit position.
  */
-#define USBD_EP_BITPOS(ep) \
-    ((NRF_USBD_EPIN_CHECK(ep) ? USBD_EPIN_BITPOS_0 : USBD_EPOUT_BITPOS_0) + NRF_USBD_EP_NR_GET(ep))
+#define NRFX_USBD_EP_BITPOS(ep) \
+    ((NRF_USBD_EPIN_CHECK(ep) ? NRFX_USBD_EPIN_BITPOS_0 : NRFX_USBD_EPOUT_BITPOS_0) + NRF_USBD_EP_NR_GET(ep))
 
 /**
  * @brief Helper macro for creating an endpoint transfer event.
@@ -134,58 +129,58 @@
  *
  * @return Initialized event constant variable.
  */
-#define NRFX_USBD_EP_TRANSFER_EVENT(name, endpont, ep_stat)          \
-    const nrfx_usbd_evt_t name = {                                   \
-        NRFX_USBD_EVT_EPTRANSFER,                                    \
-        .data = {                                                       \
-            .eptransfer = {                                             \
-                    .ep = endpont,                                      \
-                    .status = ep_stat                                   \
-            }                                                           \
-        }                                                               \
+#define NRFX_USBD_EP_TRANSFER_EVENT(name, endpont, ep_stat) \
+    const nrfx_usbd_evt_t name = {                          \
+        NRFX_USBD_EVT_EPTRANSFER,                           \
+        .data = {                                           \
+            .eptransfer = {                                 \
+                    .ep = endpont,                          \
+                    .status = ep_stat                       \
+            }                                               \
+        }                                                   \
     }
 
 /* Check it the bit positions values match defined DATAEPSTATUS bit positions */
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN1)  == USBD_EPDATASTATUS_EPIN1_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN2)  == USBD_EPDATASTATUS_EPIN2_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN3)  == USBD_EPDATASTATUS_EPIN3_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN4)  == USBD_EPDATASTATUS_EPIN4_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN5)  == USBD_EPDATASTATUS_EPIN5_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN6)  == USBD_EPDATASTATUS_EPIN6_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPIN7)  == USBD_EPDATASTATUS_EPIN7_Pos );
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT1) == USBD_EPDATASTATUS_EPOUT1_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT2) == USBD_EPDATASTATUS_EPOUT2_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT3) == USBD_EPDATASTATUS_EPOUT3_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT4) == USBD_EPDATASTATUS_EPOUT4_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT5) == USBD_EPDATASTATUS_EPOUT5_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT6) == USBD_EPDATASTATUS_EPOUT6_Pos);
-NRFX_STATIC_ASSERT(USBD_EP_BITPOS(NRFX_USBD_EPOUT7) == USBD_EPDATASTATUS_EPOUT7_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN1)  == USBD_EPDATASTATUS_EPIN1_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN2)  == USBD_EPDATASTATUS_EPIN2_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN3)  == USBD_EPDATASTATUS_EPIN3_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN4)  == USBD_EPDATASTATUS_EPIN4_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN5)  == USBD_EPDATASTATUS_EPIN5_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN6)  == USBD_EPDATASTATUS_EPIN6_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPIN7)  == USBD_EPDATASTATUS_EPIN7_Pos );
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT1) == USBD_EPDATASTATUS_EPOUT1_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT2) == USBD_EPDATASTATUS_EPOUT2_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT3) == USBD_EPDATASTATUS_EPOUT3_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT4) == USBD_EPDATASTATUS_EPOUT4_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT5) == USBD_EPDATASTATUS_EPOUT5_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT6) == USBD_EPDATASTATUS_EPOUT6_Pos);
+NRFX_STATIC_ASSERT(NRFX_USBD_EP_BITPOS(NRFX_USBD_EPOUT7) == USBD_EPDATASTATUS_EPOUT7_Pos);
 
 
 /**
- * @name Internal auxiliary definitions for SETUP packet
+ * @name Internal auxiliary definitions for SETUP packet.
  *
  * Definitions used to take out the information about last SETUP packet direction
  * from @c bmRequestType.
  * @{
  */
-/** The position of DIR bit in bmRequestType inside SETUP packet */
-#define USBD_DRV_REQUESTTYPE_DIR_BITPOS 7
-/** The mask of DIR bit in bmRequestType inside SETUP packet */
-#define USBD_DRV_REQUESTTYPE_DIR_MASK   (1U << USBD_DRV_REQUESTTYPE_DIR_BITPOS)
-/** The value of DIR bit for OUT direction (Host -> Device) */
-#define USBD_DRV_REQUESTTYPE_DIR_OUT    (0U << USBD_DRV_REQUESTTYPE_DIR_BITPOS)
-/** The value of DIR bit for IN direction (Device -> Host) */
-#define USBD_DRV_REQUESTTYPE_DIR_IN     (1U << USBD_DRV_REQUESTTYPE_DIR_BITPOS)
+/** The position of DIR bit in bmRequestType inside SETUP packet. */
+#define NRFX_USBD_DRV_REQUESTTYPE_DIR_BITPOS 7
+/** The mask of DIR bit in bmRequestType inside SETUP packet. */
+#define NRFX_USBD_DRV_REQUESTTYPE_DIR_MASK	 (1U << NRFX_USBD_DRV_REQUESTTYPE_DIR_BITPOS)
+/** The value of DIR bit for OUT direction (Host -> Device). */
+#define NRFX_USBD_DRV_REQUESTTYPE_DIR_OUT    (0U << NRFX_USBD_DRV_REQUESTTYPE_DIR_BITPOS)
+/** The value of DIR bit for IN direction (Device -> Host). */
+#define NRFX_USBD_DRV_REQUESTTYPE_DIR_IN     (1U << NRFX_USBD_DRV_REQUESTTYPE_DIR_BITPOS)
 /** @} */
 
 /**
- * @brief Current driver state
+ * @brief Current driver state.
  */
 static nrfx_drv_state_t m_drv_state = NRFX_DRV_STATE_UNINITIALIZED;
 
 /**
- * @brief Event handler for the library
+ * @brief Event handler for the library.
  *
  * Event handler that would be called on events.
  *
@@ -194,7 +189,7 @@ static nrfx_drv_state_t m_drv_state = NRFX_DRV_STATE_UNINITIALIZED;
 static nrfx_usbd_event_handler_t m_event_handler;
 
 /**
- * @brief Detected state of the bus
+ * @brief Detected state of the bus.
  *
  * Internal state changed in interrupts handling when
  * RESUME or SUSPEND event is processed.
@@ -208,7 +203,7 @@ static nrfx_usbd_event_handler_t m_event_handler;
 static volatile bool m_bus_suspend;
 
 /**
- * @brief Internal constant that contains interrupts disabled in suspend state
+ * @brief Internal constant that contains interrupts disabled in suspend state.
  *
  * Internal constant used in @ref nrfx_usbd_suspend_irq_config and @ref nrfx_usbd_active_irq_config
  * functions.
@@ -221,7 +216,7 @@ static const uint32_t m_irq_disabled_in_suspend =
     NRF_USBD_INT_DATAEP_MASK;
 
 /**
- * @brief Direction of last received Setup transfer
+ * @brief Direction of last received Setup transfer.
  *
  * This variable is used to redirect internal setup data event
  * into selected endpoint (IN or OUT).
@@ -229,7 +224,7 @@ static const uint32_t m_irq_disabled_in_suspend =
 static nrfx_usbd_ep_t m_last_setup_dir;
 
 /**
- * @brief Mark endpoint readiness for DMA transfer
+ * @brief Mark endpoint readiness for DMA transfer.
  *
  * Bits in this variable are cleared and set in interrupts.
  * 1 means that endpoint is ready for DMA transfer.
@@ -238,7 +233,7 @@ static nrfx_usbd_ep_t m_last_setup_dir;
 static uint32_t m_ep_ready;
 
 /**
- * @brief Mark endpoint with prepared data to transfer by DMA
+ * @brief Mark endpoint with prepared data to transfer by DMA.
  *
  * This variable can be from any place in the code (interrupt or main thread).
  * It would be cleared only from USBD interrupt.
@@ -249,7 +244,7 @@ static uint32_t m_ep_ready;
 static uint32_t m_ep_dma_waiting;
 
 /**
- * @brief Current EasyDMA state
+ * @brief Current EasyDMA state.
  *
  * Single flag, updated only inside interrupts, that marks current EasyDMA state.
  * In USBD there is only one DMA channel working in background, and new transfer
@@ -258,9 +253,9 @@ static uint32_t m_ep_dma_waiting;
 static bool m_dma_pending;
 
 /**
- * @brief Simulated data EP status bits required for errata 104
+ * @brief Simulated data EP status bits required for errata 104.
  *
- * Marker to delete when not required anymore: >> NRFX_USBD_ERRATA_ENABLE <<
+ * Marker to delete when not required anymore: >> NRFX_USBD_ERRATA_ENABLE <<.
  */
 static uint32_t m_simulated_dataepstatus;
 
@@ -273,12 +268,12 @@ static uint32_t m_simulated_dataepstatus;
  */
 typedef struct
 {
-    nrfx_usbd_handler_t     handler;          //!< Handler for current transfer, function pointer
-    void                     * p_context;        //!< Context for transfer handler
-    size_t                     transfer_cnt;     //!< Number of transferred bytes in the current transfer
-    uint16_t                   max_packet_size;  //!< Configured endpoint size
-    nrfx_usbd_ep_status_t   status;           //!< NRFX_SUCCESS or error code, never NRFX_ERROR_BUSY - this one is calculated
-}usbd_drv_ep_state_t;
+    nrfx_usbd_handler_t   handler;         //!< Handler for current transfer, function pointer.
+    void                  * p_context;     //!< Context for transfer handler.
+    size_t                transfer_cnt;    //!< Number of transferred bytes in the current transfer.
+    uint16_t              max_packet_size; //!< Configured endpoint size.
+    nrfx_usbd_ep_status_t status;          //!< NRFX_SUCCESS or error code, never NRFX_ERROR_BUSY - this one is calculated.
+} usbd_drv_ep_state_t;
 
 /**
  * @brief The array of transfer configurations for the endpoints.
@@ -289,26 +284,26 @@ static struct
 {
     usbd_drv_ep_state_t ep_out[NRF_USBD_EPOUT_CNT]; //!< Status for OUT endpoints.
     usbd_drv_ep_state_t ep_in [NRF_USBD_EPIN_CNT ]; //!< Status for IN endpoints.
-}m_ep_state;
+} m_ep_state;
 
 /**
  * @brief Status variables for integrated feeders.
  *
  * Current status for integrated feeders (IN transfers).
  * Integrated feeders are used for default transfers:
- * 1. Simple RAM transfer
- * 2. Simple flash transfer
- * 3. RAM transfer with automatic ZLP
- * 4. Flash transfer with automatic ZLP
+ * 1. Simple RAM transfer.
+ * 2. Simple flash transfer.
+ * 3. RAM transfer with automatic ZLP.
+ * 4. Flash transfer with automatic ZLP.
  */
 nrfx_usbd_transfer_t m_ep_feeder_state[NRF_USBD_EPIN_CNT];
 
 /**
- * @brief Status variables for integrated consumers
+ * @brief Status variables for integrated consumers.
  *
- * Current status for integrated consumers
+ * Current status for integrated consumers.
  * Currently one type of transfer is supported:
- * 1. Transfer to RAM
+ * 1. Transfer to RAM.
  *
  * Transfer is finished automatically when received data block is smaller
  * than the endpoint buffer or all the required data is received.
@@ -317,7 +312,7 @@ nrfx_usbd_transfer_t m_ep_consumer_state[NRF_USBD_EPOUT_CNT];
 
 
 /**
- * @brief Buffer used to send data directly from FLASH
+ * @brief Buffer used to send data directly from FLASH.
  *
  * This is internal buffer that would be used to emulate the possibility
  * to transfer data directly from FLASH.
@@ -329,23 +324,22 @@ nrfx_usbd_transfer_t m_ep_consumer_state[NRF_USBD_EPOUT_CNT];
 static uint32_t m_tx_buffer[NRFX_CEIL_DIV(
     NRFX_USBD_FEEDER_BUFFER_SIZE, sizeof(uint32_t))];
 
-
 /* Early declaration. Documentation above definition. */
 static void usbd_dmareq_process(void);
 
 
 /**
- * @brief Change endpoint number to endpoint event code
+ * @brief Change endpoint number to endpoint event code.
  *
- * @param ep Endpoint number
+ * @param ep Endpoint number.
  *
  * @return Connected endpoint event code.
  *
- * Marker to delete when not required anymore: >> NRFX_USBD_ERRATA_ENABLE <<
+ * Marker to delete when not required anymore: >> NRFX_USBD_ERRATA_ENABLE <<.
  */
 static inline nrf_usbd_event_t nrfx_usbd_ep_to_endevent(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
 
     static const nrf_usbd_event_t epin_endev[] =
     {
@@ -377,16 +371,16 @@ static inline nrf_usbd_event_t nrfx_usbd_ep_to_endevent(nrfx_usbd_ep_t ep)
 
 
 /**
- * @brief Get interrupt mask for selected endpoint
+ * @brief Get interrupt mask for selected endpoint.
  *
- * @param[in] ep Endpoint number
+ * @param[in] ep Endpoint number.
  *
  * @return Interrupt mask related to the EasyDMA transfer end for the
  *         chosen endpoint.
  */
 static inline uint32_t nrfx_usbd_ep_to_int(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
 
     static const uint8_t epin_bitpos[] =
     {
@@ -540,10 +534,7 @@ bool nrfx_usbd_feeder_ram_zlp(
  * @retval true  Continue transfer.
  * @retval false This was the last transfer.
  */
-bool nrfx_usbd_feeder_flash(
-    nrfx_usbd_ep_transfer_t * p_next,
-    void * p_context,
-    size_t ep_size)
+bool nrfx_usbd_feeder_flash(nrfx_usbd_ep_transfer_t * p_next, void * p_context, size_t ep_size)
 {
     nrfx_usbd_transfer_t * p_transfer = p_context;
     NRFX_ASSERT(!nrfx_is_in_ram((const void*)(p_transfer->p_data.ptr)));
@@ -578,10 +569,7 @@ bool nrfx_usbd_feeder_flash(
  * @retval true  Continue transfer.
  * @retval false This was the last transfer.
  */
-bool nrfx_usbd_feeder_flash_zlp(
-    nrfx_usbd_ep_transfer_t * p_next,
-    void * p_context,
-    size_t ep_size)
+bool nrfx_usbd_feeder_flash_zlp(nrfx_usbd_ep_transfer_t * p_next, void * p_context, size_t ep_size)
 {
     nrfx_usbd_transfer_t * p_transfer = p_context;
     NRFX_ASSERT(!nrfx_is_in_ram((const void*)(p_transfer->p_data.ptr)));
@@ -616,72 +604,72 @@ bool nrfx_usbd_feeder_flash_zlp(
 /** @} */
 
 /**
- * @brief Change Driver endpoint number to HAL endpoint number
+ * @brief Change Driver endpoint number to HAL endpoint number.
  *
- * @param ep Driver endpoint identifier
+ * @param ep Driver endpoint identifier.
  *
- * @return Endpoint identifier in HAL
+ * @return Endpoint identifier in HAL.
  *
  * @sa nrfx_usbd_ep_from_hal
  */
 static inline uint8_t ep_to_hal(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
     return (uint8_t)ep;
 }
 
 /**
- * @brief Generate start task number for selected endpoint index
+ * @brief Generate start task number for selected endpoint index.
  *
- * @param ep Endpoint number
+ * @param ep Endpoint number.
  *
  * @return Task for starting EasyDMA transfer on selected endpoint.
  */
 static inline nrf_usbd_task_t task_start_ep(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
     return (nrf_usbd_task_t)(
         (NRF_USBD_EPIN_CHECK(ep) ? NRF_USBD_TASK_STARTEPIN0 : NRF_USBD_TASK_STARTEPOUT0) +
         (NRF_USBD_EP_NR_GET(ep) * sizeof(uint32_t)));
 }
 
 /**
- * @brief Access selected endpoint state structure
+ * @brief Access selected endpoint state structure.
  *
  * Function used to change or just read the state of selected endpoint.
  * It is used for internal transmission state.
  *
- * @param ep Endpoint number
+ * @param ep Endpoint number.
  */
 static inline usbd_drv_ep_state_t* ep_state_access(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
     return ((NRF_USBD_EPIN_CHECK(ep) ? m_ep_state.ep_in : m_ep_state.ep_out) +
         NRF_USBD_EP_NR_GET(ep));
 }
 
 /**
- * @brief Change endpoint number to bit position
+ * @brief Change endpoint number to bit position.
  *
  * Bit positions are defined the same way as they are placed in DATAEPSTATUS register,
  * but bits for endpoint 0 are included.
  *
- * @param ep Endpoint number
+ * @param ep Endpoint number.
  *
- * @return Bit position related to the given endpoint number
+ * @return Bit position related to the given endpoint number.
  *
  * @sa bit2ep
  */
 static inline uint8_t ep2bit(nrfx_usbd_ep_t ep)
 {
-    USBD_ASSERT_EP_VALID(ep);
-    return USBD_EP_BITPOS(ep);
+    NRFX_USBD_ASSERT_EP_VALID(ep);
+    return NRFX_USBD_EP_BITPOS(ep);
 }
 
 /**
- * @brief Change bit position to endpoint number
+ * @brief Change bit position to endpoint number.
  *
- * @param bitpos Bit position
+ * @param bitpos Bit position.
  *
  * @return Endpoint number corresponding to given bit position.
  *
@@ -689,20 +677,20 @@ static inline uint8_t ep2bit(nrfx_usbd_ep_t ep)
  */
 static inline nrfx_usbd_ep_t bit2ep(uint8_t bitpos)
 {
-    NRFX_STATIC_ASSERT(USBD_EPOUT_BITPOS_0 > USBD_EPIN_BITPOS_0);
-    return (nrfx_usbd_ep_t)((bitpos >= USBD_EPOUT_BITPOS_0) ?
-        NRF_USBD_EPOUT(bitpos - USBD_EPOUT_BITPOS_0) : NRF_USBD_EPIN(bitpos));
+    NRFX_STATIC_ASSERT(NRFX_USBD_EPOUT_BITPOS_0 > NRFX_USBD_EPIN_BITPOS_0);
+    return (nrfx_usbd_ep_t)((bitpos >= NRFX_USBD_EPOUT_BITPOS_0) ?
+        NRF_USBD_EPOUT(bitpos - NRFX_USBD_EPOUT_BITPOS_0) : NRF_USBD_EPIN(bitpos));
 }
 
 /**
- * @brief Mark that EasyDMA is working
+ * @brief Mark that EasyDMA is working.
  *
  * Internal function to set the flag informing about EasyDMA transfer pending.
  * This function is called always just after the EasyDMA transfer is started.
  */
 static inline void usbd_dma_pending_set(void)
 {
-    if (nrf_drv_usb_errata_199())
+    if (nrfx_usbd_errata_199())
     {
         *((volatile uint32_t *)0x40027C1C) = 0x00000082;
     }
@@ -710,14 +698,14 @@ static inline void usbd_dma_pending_set(void)
 }
 
 /**
- * @brief Mark that EasyDMA is free
+ * @brief Mark that EasyDMA is free.
  *
  * Internal function to clear the flag informing about EasyDMA transfer pending.
  * This function is called always just after the finished EasyDMA transfer is detected.
  */
 static inline void usbd_dma_pending_clear(void)
 {
-    if (nrf_drv_usb_errata_199())
+    if (nrfx_usbd_errata_199())
     {
         *((volatile uint32_t *)0x40027C1C) = 0x00000000;
     }
@@ -725,7 +713,7 @@ static inline void usbd_dma_pending_clear(void)
 }
 
 /**
- * @brief Start selected EasyDMA transmission
+ * @brief Start selected EasyDMA transmission.
  *
  * This is internal auxiliary function.
  * No checking is made if EasyDMA is ready for new transmission.
@@ -740,7 +728,7 @@ static inline void usbd_dma_start(nrfx_usbd_ep_t ep)
 }
 
 /**
- * @brief Abort pending transfer on selected endpoint
+ * @brief Abort pending transfer on selected endpoint.
  *
  * @param ep Endpoint number.
  *
@@ -800,41 +788,41 @@ void nrfx_usbd_ep_abort(nrfx_usbd_ep_t ep)
 
 
 /**
- * @brief Abort all pending endpoints
+ * @brief Abort all pending endpoints.
  *
  * Function aborts all pending endpoint transfers.
  */
 static void usbd_ep_abort_all(void)
 {
-    uint32_t ep_waiting = m_ep_dma_waiting | (m_ep_ready & USBD_EPOUT_BIT_MASK);
+    uint32_t ep_waiting = m_ep_dma_waiting | (m_ep_ready & NRFX_USBD_EPOUT_BIT_MASK);
     while (0 != ep_waiting)
     {
         uint8_t bitpos = __CLZ(__RBIT(ep_waiting));
-        if(!NRF_USBD_EPISO_CHECK(bit2ep(bitpos)))
+        if (!NRF_USBD_EPISO_CHECK(bit2ep(bitpos)))
         {
             usbd_ep_abort(bit2ep(bitpos));
         }
         ep_waiting &= ~(1U << bitpos);
     }
 
-    m_ep_ready = (((1U << NRF_USBD_EPIN_CNT) - 1U) << USBD_EPIN_BITPOS_0);
+    m_ep_ready = (((1U << NRF_USBD_EPIN_CNT) - 1U) << NRFX_USBD_EPIN_BITPOS_0);
 }
 
 /**
- * @brief Force the USBD interrupt into pending state
+ * @brief Force the USBD interrupt into pending state.
  *
  * This function is used to force USBD interrupt to be processed right now.
  * It makes it possible to process all EasyDMA access on one thread priority level.
  */
 static inline void usbd_int_rise(void)
 {
-    NVIC_SetPendingIRQ(USBD_IRQn);
+	NRFX_IRQ_PENDING_SET(USBD_IRQn);
 }
 
 /**
- * @name USBD interrupt runtimes
+ * @name USBD interrupt runtimes.
  *
- * Interrupt runtimes that would be vectorized using @ref m_ivec_isr
+ * Interrupt runtimes that would be vectorized using @ref m_ivec_isr.
  * @{
  */
 
@@ -853,17 +841,8 @@ static void ev_usbreset_handler(void)
 static void ev_started_handler(void)
 {
 #if NRFX_USBD_STARTED_EV_ENABLE
-    uint32_t epstatus = nrf_usbd_epstatus_get_and_clear();
-
-    /* All finished endpoint have to be marked as busy */
-    // #warning Check this one
-    // NRFX_ASSERT(epstatus == ((~m_ep_ready) & epstatus));
-    while (epstatus)
-    {
-        uint8_t bitpos    = __CLZ(__RBIT(epstatus));
-        nrfx_usbd_ep_t ep = bit2ep(bitpos);
-        epstatus          &= ~(1UL << bitpos);
-    }
+	// Handler not used by the stack.
+	// May be used for debugging.
 #endif
 }
 
@@ -872,9 +851,9 @@ static void ev_started_handler(void)
  *
  * This handler would be called when EasyDMA transfer for endpoints that does not require clearing.
  * All in endpoints are cleared automatically when new EasyDMA transfer is initialized.
- * For endpoint 0 see @ref nrf_usbd_ep0out_dma_handler
+ * For endpoint 0 see @ref nrf_usbd_ep0out_dma_handler.
  *
- * @param[in] ep Endpoint number
+ * @param[in] ep Endpoint number.
  */
 static inline void nrf_usbd_ep0in_dma_handler(void)
 {
@@ -903,13 +882,12 @@ static inline void nrf_usbd_ep0in_dma_handler(void)
  *
  * This handler would be called when EasyDMA transfer for endpoints that does not require clearing.
  * All in endpoints are cleared automatically when new EasyDMA transfer is initialized.
- * For endpoint 0 see @ref nrf_usbd_ep0out_dma_handler
+ * For endpoint 0 see @ref nrf_usbd_ep0out_dma_handler.
  *
- * @param[in] ep Endpoint number
+ * @param[in] ep Endpoint number.
  */
 static inline void nrf_usbd_epin_dma_handler(nrfx_usbd_ep_t ep)
 {
-
     NRFX_LOG_DEBUG("USB event: DMA ready IN: %x", ep);
     NRFX_ASSERT(NRF_USBD_EPIN_CHECK(ep));
     NRFX_ASSERT(!NRF_USBD_EPISO_CHECK(ep));
@@ -933,13 +911,11 @@ static inline void nrf_usbd_epin_dma_handler(nrfx_usbd_ep_t ep)
 }
 
 /**
- * @brief Handler for EasyDMA event from in isochronous endpoint
- *
- * @todo RK documentation
+ * @brief Handler for EasyDMA event from in isochronous endpoint.
  */
 static inline void nrf_usbd_epiniso_dma_handler(nrfx_usbd_ep_t ep)
 {
-    if (NRF_USBD_ISO_DEBUG)
+    if (NRFX_USBD_ISO_DEBUG)
     {
         NRFX_LOG_DEBUG("USB event: DMA ready ISOIN: %x", ep);
     }
@@ -1002,12 +978,11 @@ static inline void nrf_usbd_ep0out_dma_handler(void)
  *
  * This handler would be called when EasyDMA transfer for OUT endpoint has been finished.
  *
- * @param[in] ep Endpoint number
- *
+ * @param[in] ep Endpoint number.
  */
 static inline void nrf_usbd_epout_dma_handler(nrfx_usbd_ep_t ep)
 {
-    NRFX_LOG_DEBUG("USB drv: DMA ready OUT: %x", ep);
+    NRFX_LOG_DEBUG("DMA ready OUT: %x", ep);
     NRFX_ASSERT(NRF_USBD_EPOUT_CHECK(ep));
     NRFX_ASSERT(!NRF_USBD_EPISO_CHECK(ep));
     NRFX_ASSERT(NRF_USBD_EP_NR_GET(ep) > 0);
@@ -1038,16 +1013,13 @@ static inline void nrf_usbd_epout_dma_handler(nrfx_usbd_ep_t ep)
 }
 
 /**
- * @brief Handler for EasyDMA event from out isochronous endpoint
- *
- * @todo RK documentation
+ * @brief Handler for EasyDMA event from out isochronous endpoint.
  */
-
 static inline void nrf_usbd_epoutiso_dma_handler(nrfx_usbd_ep_t ep)
 {
-    if (NRF_USBD_ISO_DEBUG)
+    if (NRFX_USBD_ISO_DEBUG)
     {
-        NRFX_LOG_DEBUG("USB drv: DMA ready ISOOUT: %x", ep);
+        NRFX_LOG_DEBUG("DMA ready ISOOUT: %x", ep);
     }
     NRFX_ASSERT(NRF_USBD_EPISO_CHECK(ep));
     usbd_dma_pending_clear();
@@ -1107,11 +1079,11 @@ static void ev_sof_handler(void)
 }
 
 /**
- * @brief React on data transfer finished
+ * @brief React on data transfer finished.
  *
  * Auxiliary internal function.
- * @param ep     Endpoint number
- * @param bitpos Bit position for selected endpoint number
+ * @param ep     Endpoint number.
+ * @param bitpos Bit position for selected endpoint number.
  */
 static void usbd_ep_data_handler(nrfx_usbd_ep_t ep, uint8_t bitpos)
 {
@@ -1158,15 +1130,15 @@ static void ev_setup_handler(void)
         nrf_usbd_setup_wlength_get());
     uint8_t bmRequestType = nrf_usbd_setup_bmrequesttype_get();
 
-
-    if ((m_ep_dma_waiting | ((~m_ep_ready) & USBD_EPIN_BIT_MASK)) & (1U <<ep2bit(m_last_setup_dir)))
+    if ((m_ep_dma_waiting | ((~m_ep_ready) & NRFX_USBD_EPIN_BIT_MASK))
+	    & (1U <<ep2bit(m_last_setup_dir)))
     {
         NRFX_LOG_DEBUG("USBD drv: Trying to abort last transfer on EP0");
         usbd_ep_abort(m_last_setup_dir);
     }
 
     m_last_setup_dir =
-        ((bmRequestType & USBD_DRV_REQUESTTYPE_DIR_MASK) == USBD_DRV_REQUESTTYPE_DIR_OUT) ?
+        ((bmRequestType & NRFX_USBD_DRV_REQUESTTYPE_DIR_MASK) == NRFX_USBD_DRV_REQUESTTYPE_DIR_OUT) ?
         NRFX_USBD_EPOUT0 : NRFX_USBD_EPIN0;
 
     (void)(NRFX_ATOMIC_U32_AND(
@@ -1230,17 +1202,17 @@ static void ev_epdata_handler(void)
     if (nrfx_usbd_errata_104())
     {
         dataepstatus |= (m_simulated_dataepstatus &
-            ~((1U << USBD_EPOUT_BITPOS_0) | (1U << USBD_EPIN_BITPOS_0)));
+            ~((1U << NRFX_USBD_EPOUT_BITPOS_0) | (1U << NRFX_USBD_EPIN_BITPOS_0)));
         m_simulated_dataepstatus &=
-             ((1U << USBD_EPOUT_BITPOS_0) | (1U << USBD_EPIN_BITPOS_0));
+             ((1U << NRFX_USBD_EPOUT_BITPOS_0) | (1U << NRFX_USBD_EPIN_BITPOS_0));
     }
     NRFX_LOG_DEBUG("USBD event: EndpointEPStatus: %x", dataepstatus);
 
     /* All finished endpoint have to be marked as busy */
     while (dataepstatus)
     {
-        uint8_t           bitpos = __CLZ(__RBIT(dataepstatus));
-        nrfx_usbd_ep_t ep     = bit2ep(bitpos);
+        uint8_t bitpos    = __CLZ(__RBIT(dataepstatus));
+        nrfx_usbd_ep_t ep = bit2ep(bitpos);
         dataepstatus &= ~(1UL << bitpos);
 
         (void)(usbd_ep_data_handler(ep, bitpos));
@@ -1253,7 +1225,7 @@ static void ev_epdata_handler(void)
 }
 
 /**
- * @brief Function to select the endpoint to start
+ * @brief Function to select the endpoint to start.
  *
  * Function that realizes algorithm to schedule right channel for EasyDMA transfer.
  * It gets a variable with flags for the endpoints currently requiring transfer.
@@ -1273,7 +1245,7 @@ static uint8_t usbd_dma_scheduler_algorithm(uint32_t req)
 }
 
 /**
- * @brief Get the size of isochronous endpoint
+ * @brief Get the size of isochronous endpoint.
  *
  * The size of isochronous endpoint is configurable.
  * This function returns the size of isochronous buffer taking into account
@@ -1295,7 +1267,7 @@ static inline size_t usbd_ep_iso_capacity(nrfx_usbd_ep_t ep)
 }
 
 /**
- * @brief Process all DMA requests
+ * @brief Process all DMA requests.
  *
  * Function that have to be called from USBD interrupt handler.
  * It have to be called when all the interrupts connected with endpoints transfer
@@ -1371,7 +1343,7 @@ static void usbd_dmareq_process(void)
 
             usbd_dma_pending_set();
             m_ep_ready &= ~(1U << pos);
-            if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+            if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
             {
                 NRFX_LOG_DEBUG(
                     "USB DMA process: Starting transfer on EP: %x, size: %u",
@@ -1427,7 +1399,7 @@ static void usbd_dmareq_process(void)
                 }
             }
 
-            if (NRF_USBD_DMAREQ_PROCESS_DEBUG)
+            if (NRFX_USBD_DMAREQ_PROCESS_DEBUG)
             {
                 NRFX_LOG_DEBUG("USB DMA process - finishing");
             }
@@ -1437,7 +1409,7 @@ static void usbd_dmareq_process(void)
     }
     else
     {
-        if (NRF_USBD_DMAREQ_PROCESS_DEBUG)
+        if (NRFX_USBD_DMAREQ_PROCESS_DEBUG)
         {
             NRFX_LOG_DEBUG("USB DMA process - EasyDMA busy");
         }
@@ -1448,7 +1420,7 @@ static void usbd_dmareq_process(void)
 typedef void (*nrfx_usbd_isr_t)(void);
 
 /**
- * @brief USBD interrupt service runtimes
+ * @brief USBD interrupt service runtimes.
  *
  */
 static const nrfx_usbd_isr_t m_isr[] =
@@ -1534,7 +1506,7 @@ void nrfx_usbd_irq_handler(void)
             if (0 != uii)
             {
                 uint8_t rb;
-                m_simulated_dataepstatus |= ((uint32_t)uii) << USBD_EPIN_BITPOS_0;
+                m_simulated_dataepstatus |= ((uint32_t)uii) << NRFX_USBD_EPIN_BITPOS_0;
                 *((volatile uint32_t *)(NRF_USBD_BASE + 0x800)) = 0x7A9;
                 *((volatile uint32_t *)(NRF_USBD_BASE + 0x804)) = uii;
                 rb = (uint8_t)*((volatile uint32_t *)(NRF_USBD_BASE + 0x804));
@@ -1546,7 +1518,7 @@ void nrfx_usbd_irq_handler(void)
             if (0 != uoi)
             {
                 uint8_t rb;
-                m_simulated_dataepstatus |= ((uint32_t)uoi) << USBD_EPOUT_BITPOS_0;
+                m_simulated_dataepstatus |= ((uint32_t)uoi) << NRFX_USBD_EPOUT_BITPOS_0;
                 *((volatile uint32_t *)(NRF_USBD_BASE + 0x800)) = 0x7AA;
                 *((volatile uint32_t *)(NRF_USBD_BASE + 0x804)) = uoi;
                 rb = (uint8_t)*((volatile uint32_t *)(NRF_USBD_BASE + 0x804));
@@ -1573,17 +1545,17 @@ void nrfx_usbd_irq_handler(void)
             }
 
             if (0 != (m_simulated_dataepstatus &
-                ~((1U << USBD_EPOUT_BITPOS_0) | (1U << USBD_EPIN_BITPOS_0))))
+                ~((1U << NRFX_USBD_EPOUT_BITPOS_0) | (1U << NRFX_USBD_EPIN_BITPOS_0))))
             {
                 active |= enabled & NRF_USBD_INT_DATAEP_MASK;
             }
             if (0 != (m_simulated_dataepstatus &
-                ((1U << USBD_EPOUT_BITPOS_0) | (1U << USBD_EPIN_BITPOS_0))))
+                ((1U << NRFX_USBD_EPOUT_BITPOS_0) | (1U << NRFX_USBD_EPIN_BITPOS_0))))
             {
                 if (0 != (enabled & NRF_USBD_INT_EP0DATADONE_MASK))
                 {
                     m_simulated_dataepstatus &=
-                        ~((1U << USBD_EPOUT_BITPOS_0) | (1U << USBD_EPIN_BITPOS_0));
+                        ~((1U << NRFX_USBD_EPOUT_BITPOS_0) | (1U << NRFX_USBD_EPIN_BITPOS_0));
                     active |= NRF_USBD_INT_EP0DATADONE_MASK;
                 }
             }
@@ -1617,7 +1589,7 @@ nrfx_err_t nrfx_usbd_init(nrfx_usbd_event_handler_t const event_handler)
     {
         return NRFX_ERROR_INVALID_PARAM;
     }
-    if ( m_drv_state != NRFX_DRV_STATE_UNINITIALIZED)
+    if (m_drv_state != NRFX_DRV_STATE_UNINITIALIZED)
     {
         return NRFX_ERROR_INVALID_STATE;
     }
@@ -1626,7 +1598,7 @@ nrfx_err_t nrfx_usbd_init(nrfx_usbd_event_handler_t const event_handler)
     m_drv_state = NRFX_DRV_STATE_INITIALIZED;
 
     uint8_t n;
-    for (n=0; n<NRF_USBD_EPIN_CNT; ++n)
+    for (n = 0; n < NRF_USBD_EPIN_CNT; ++n)
     {
         nrfx_usbd_ep_t ep = NRFX_USBD_EPIN(n);
         nrfx_usbd_ep_max_packet_size_set(ep, NRF_USBD_EPISO_CHECK(ep) ?
@@ -1636,7 +1608,7 @@ nrfx_err_t nrfx_usbd_init(nrfx_usbd_event_handler_t const event_handler)
         p_state->handler.feeder = NULL;
         p_state->transfer_cnt = 0;
     }
-    for (n=0; n<NRF_USBD_EPOUT_CNT; ++n)
+    for (n = 0; n < NRF_USBD_EPOUT_CNT; ++n)
     {
         nrfx_usbd_ep_t ep = NRFX_USBD_EPOUT(n);
         nrfx_usbd_ep_max_packet_size_set(ep, NRF_USBD_EPISO_CHECK(ep) ?
@@ -1753,7 +1725,7 @@ void nrfx_usbd_enable(void)
 
     nrf_usbd_isosplit_set(NRF_USBD_ISOSPLIT_Half);
 
-    m_ep_ready = (((1U << NRF_USBD_EPIN_CNT) - 1U) << USBD_EPIN_BITPOS_0);
+    m_ep_ready = (((1U << NRF_USBD_EPIN_CNT) - 1U) << NRFX_USBD_EPIN_BITPOS_0);
     m_ep_dma_waiting = 0;
     usbd_dma_pending_clear();
     m_last_setup_dir = NRFX_USBD_EPOUT0;
@@ -1810,7 +1782,7 @@ void nrfx_usbd_stop(void)
 {
     NRFX_ASSERT(m_drv_state == NRFX_DRV_STATE_POWERED_ON);
 
-    if(NRFX_IRQ_IS_ENABLED(USBD_IRQn))
+    if (NRFX_IRQ_IS_ENABLED(USBD_IRQn))
     {
         /* Abort transfers */
         usbd_ep_abort_all();
@@ -1960,7 +1932,7 @@ void nrfx_usbd_ep_enable(nrfx_usbd_ep_t ep)
 {
     nrf_usbd_int_enable(nrfx_usbd_ep_to_int(ep));
 
-    if(nrf_usbd_ep_enable_check(ep))
+    if (nrf_usbd_ep_enable_check(ep))
     {
         return;
     }
@@ -2018,18 +1990,18 @@ nrfx_err_t nrfx_usbd_ep_transfer(
     if ((NRF_USBD_EP_NR_GET(ep) == 0) && (ep != m_last_setup_dir))
     {
         ret = NRFX_ERROR_INVALID_ADDR;
-        if (NRF_USBD_FAILED_TRANSFERS_DEBUG && (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
+        if (NRFX_USBD_FAILED_TRANSFERS_DEBUG && (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
         {
-            NRFX_LOG_DEBUG("USB driver: Transfer failed: Invalid EPr\n");
+            NRFX_LOG_DEBUG("Transfer failed: Invalid EPr\n");
         }
     }
-    else if ((m_ep_dma_waiting | ((~m_ep_ready) & USBD_EPIN_BIT_MASK)) & (1U << ep_bitpos))
+    else if ((m_ep_dma_waiting | ((~m_ep_ready) & NRFX_USBD_EPIN_BIT_MASK)) & (1U << ep_bitpos))
     {
         /* IN (Device -> Host) transfer has to be transmitted out to allow new transmission */
         ret = NRFX_ERROR_BUSY;
-        if (NRF_USBD_FAILED_TRANSFERS_DEBUG)
+        if (NRFX_USBD_FAILED_TRANSFERS_DEBUG)
         {
-            NRFX_LOG_DEBUG("USB driver: Transfer failed: EP is busy");
+            NRFX_LOG_DEBUG("Transfer failed: EP is busy");
         }
     }
     else
@@ -2046,10 +2018,10 @@ nrfx_err_t nrfx_usbd_ep_transfer(
                 if (0 == (p_transfer->flags & NRFX_USBD_TRANSFER_ZLP_FLAG))
                 {
                     p_state->handler.feeder = nrfx_usbd_feeder_ram;
-                    if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+                    if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
                     {
                         NRFX_LOG_DEBUG(
-                            "USB driver: Transfer called on endpoint %x, size: %u, mode: "
+                            "Transfer called on endpoint %x, size: %u, mode: "
                             "RAM",
                             ep,
                             p_transfer->size);
@@ -2058,10 +2030,10 @@ nrfx_err_t nrfx_usbd_ep_transfer(
                 else
                 {
                     p_state->handler.feeder = nrfx_usbd_feeder_ram_zlp;
-                    if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+                    if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
                     {
                         NRFX_LOG_DEBUG(
-                            "USB driver: Transfer called on endpoint %x, size: %u, mode: "
+                            "Transfer called on endpoint %x, size: %u, mode: "
                             "RAM_ZLP",
                             ep,
                             p_transfer->size);
@@ -2074,10 +2046,10 @@ nrfx_err_t nrfx_usbd_ep_transfer(
                 if (0 == (p_transfer->flags & NRFX_USBD_TRANSFER_ZLP_FLAG))
                 {
                     p_state->handler.feeder = nrfx_usbd_feeder_flash;
-                    if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+                    if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
                     {
                         NRFX_LOG_DEBUG(
-                            "USB driver: Transfer called on endpoint %x, size: %u, mode: "
+                            "Transfer called on endpoint %x, size: %u, mode: "
                             "FLASH",
                             ep,
                             p_transfer->size);
@@ -2086,10 +2058,10 @@ nrfx_err_t nrfx_usbd_ep_transfer(
                 else
                 {
                     p_state->handler.feeder = nrfx_usbd_feeder_flash_zlp;
-                    if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+                    if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
                     {
                         NRFX_LOG_DEBUG(
-                            "USB driver: Transfer called on endpoint %x, size: %u, mode: "
+                            "Transfer called on endpoint %x, size: %u, mode: "
                             "FLASH_ZLP",
                             ep,
                             p_transfer->size);
@@ -2129,18 +2101,18 @@ nrfx_err_t nrfx_usbd_ep_handled_transfer(
     if ((NRF_USBD_EP_NR_GET(ep) == 0) && (ep != m_last_setup_dir))
     {
         ret = NRFX_ERROR_INVALID_ADDR;
-        if (NRF_USBD_FAILED_TRANSFERS_DEBUG && (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
+        if (NRFX_USBD_FAILED_TRANSFERS_DEBUG && (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
         {
-            NRFX_LOG_DEBUG("USB driver: Transfer failed: Invalid EP");
+            NRFX_LOG_DEBUG("Transfer failed: Invalid EP");
         }
     }
-    else if ((m_ep_dma_waiting | ((~m_ep_ready) & USBD_EPIN_BIT_MASK)) & (1U << ep_bitpos))
+    else if ((m_ep_dma_waiting | ((~m_ep_ready) & NRFX_USBD_EPIN_BIT_MASK)) & (1U << ep_bitpos))
     {
         /* IN (Device -> Host) transfer has to be transmitted out to allow a new transmission */
         ret = NRFX_ERROR_BUSY;
-        if (NRF_USBD_FAILED_TRANSFERS_DEBUG && (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
+        if (NRFX_USBD_FAILED_TRANSFERS_DEBUG && (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep))))
         {
-            NRFX_LOG_DEBUG("USB driver: Transfer failed: EP is busy");\
+            NRFX_LOG_DEBUG("Transfer failed: EP is busy");
         }
     }
     else
@@ -2155,9 +2127,9 @@ nrfx_err_t nrfx_usbd_ep_handled_transfer(
         m_ep_dma_waiting   |= 1U << ep_bitpos;
 
         ret = NRFX_SUCCESS;
-        if (NRF_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
+        if (NRFX_USBD_ISO_DEBUG || (!NRF_USBD_EPISO_CHECK(ep)))
         {
-            NRFX_LOG_DEBUG("USB driver: Transfer called on endpoint %x, mode: Handler", ep);
+            NRFX_LOG_DEBUG("Transfer called on endpoint %x, mode: Handler", ep);
         }
         usbd_int_rise();
     }
@@ -2182,14 +2154,14 @@ nrfx_err_t nrfx_usbd_ep_status_get(nrfx_usbd_ep_t ep, size_t * p_size)
     return ret;
 }
 
-size_t     nrfx_usbd_epout_size_get(nrfx_usbd_ep_t ep)
+size_t nrfx_usbd_epout_size_get(nrfx_usbd_ep_t ep)
 {
     return nrf_usbd_epout_size_get(ep_to_hal(ep));
 }
 
-bool       nrfx_usbd_ep_is_busy(nrfx_usbd_ep_t ep)
+bool nrfx_usbd_ep_is_busy(nrfx_usbd_ep_t ep)
 {
-    return (0 != ((m_ep_dma_waiting | ((~m_ep_ready) & USBD_EPIN_BIT_MASK)) & (1U << ep2bit(ep))));
+    return (0 != ((m_ep_dma_waiting | ((~m_ep_ready) & NRFX_USBD_EPIN_BIT_MASK)) & (1U << ep2bit(ep))));
 }
 
 void nrfx_usbd_ep_stall(nrfx_usbd_ep_t ep)

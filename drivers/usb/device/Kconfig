@@ -57,7 +57,6 @@ config USB_NRF52840
 	select HAS_DTS_USB
 	select NRFX_USBD
 	select NRFX_SYSTICK
-	select NRFX_ATOMIC
 	select HAS_NRFX
 	default n
 	help
