@@ -153,7 +153,7 @@ struct usbd_ep_event {
  */
 #define FIFO_ELEM_MIN_SZ	sizeof(struct usbd_ep_event)
 #define FIFO_ELEM_MAX_SZ	sizeof(struct usbd_ep_event)
-#define FIFO_ELEM_COUNT		16
+#define FIFO_ELEM_COUNT		32
 #define FIFO_ELEM_ALIGN		sizeof(unsigned int)
 
 K_MEM_POOL_DEFINE(fifo_elem_pool, FIFO_ELEM_MIN_SZ, FIFO_ELEM_MAX_SZ,
