@@ -1488,7 +1488,9 @@ int usb_dc_ep_read_continue(u8_t ep)
 		return -EINVAL;
 	}
 
-	ep_ctx->buf.curr = ep_ctx->buf.data;
+	if (!ep_ctx->buf.len) {
+		ep_ctx->buf.curr = ep_ctx->buf.data;
+	}
 	ep_ctx->read_complete = true;
 
 	if (ep_ctx->read_pending) {
