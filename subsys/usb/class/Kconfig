@@ -140,4 +140,10 @@ config USB_DFU_DETACH_TIMEOUT
 	depends on USB_DFU_CLASS
 	default 1000
 
+config USB_AUDIO
+	bool "USB Audio Device Class Driver"
+	select USB_COMPOSITE_DEVICE
+	help
+	  USB audio device class driver
+
 endif # CONFIG_USB_DEVICE_STACK
